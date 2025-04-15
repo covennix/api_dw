@@ -4,43 +4,31 @@ const axios = require('axios');
 const app = express();
 const PORT = 8086;
 
-// Rota 1 - Dog API APENAs testeS
-
-app.get('/dog/:breed', async (req, res) => {
-    const { breed } = req.params;
+// uscar dados CEP
+app.get('/cep/:cep', async (req, res) => {
+    const { cep } = req.params;
 
     try {
-        const response = await axios.get(`https://api.thedogapi.com/v1/breeds/search?q=${breed}`);
-        const dog = response.data[0];
+        const response = await axios.get(`https://brasilapi.com.br/api/cep/v1/${cep}`);
+        const { street, neighborhood, city, state, service } = response.data;
 
-        if (!dog) {
-            return res.status(404).send(`Não encontramos nenhuma raça chamada "${breed}".`);
-        }
-
-        res.send(`A raça ${dog.name} é conhecida por: ${dog.temperament}. Peso médio: ${dog.weight.metric} kg.`);
+        res.send(`O CEP ${cep} pertence à rua ${street}, no bairro ${neighborhood}, cidade de ${city} - ${state}. Fonte: ${service}.`);
     } catch (error) {
-        res.status(500).send('Erro ao buscar informações da raça.');
+        res.status(404).send(`Erro ao buscar informações do CEP ${cep}. Verifique se ele está correto.`);
     }
 });
 
-// Rota 2 - Open Meteo API
-
-app.get('/weather/:lat/:lon', async (req, res) => {
-    const { lat, lon } = req.params;
+// Listar municípios
+app.get('/municipios/:uf', async (req, res) => {
+    const { uf } = req.params;
 
     try {
-        const response = await axios.get('https://api.open-meteo.com/v1/forecast', {
-            params: {
-                latitude: lat,
-                longitude: lon,
-                current_weather: true
-            }
-        });
+        const response = await axios.get(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}?providers=dados-abertos-br,gov,wikipedia`);
+        const nomes = response.data.map(m => m.nome);
 
-        const weather = response.data.current_weather;
-        res.send(`Agora, na coordenada (${lat}, ${lon}), a temperatura é de ${weather.temperature}°C e o clima está ${weather.weathercode === 0 ? 'limpo' : 'variado'}.`);
+        res.send(`Municípios de ${uf}: ${nomes.join(', ')}.`);
     } catch (error) {
-        res.status(500).send('Erro ao buscar informações climáticas.');
+        res.status(404).send(`Erro ao buscar municípios para o estado ${uf}.`);
     }
 });
 
